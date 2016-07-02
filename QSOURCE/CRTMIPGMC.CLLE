@@ -1,0 +1,113 @@
+
+  /*  = Program....... CrtMIPgmC                                    =  */
+  /*  = Description... Create Machine Interface Program             =  */
+  /*  =                Command processing program for CrtMIPgm      =  */
+  /*  = Source type... CLLE                                         =  */
+  /*  = Compile ...... CrtBndCL   Pgm(YourLib/CrtMIPgmC)            =  */
+  /*  =                           DftActGrp(*No)                    =  */
+  /*  =                           ActGrp(*New)                      =  */
+  /*  ===============================================================  */
+
+             Pgm        ( &Pgm &SrcFile &SrcMbr &Text &UsrPrf &Replace &Aut &GenOpt )
+
+
+
+
+  /*  ===============================================================  */
+  /*  = Declarations                                                =  */
+  /*  ===============================================================  */
+
+             Dcl        &Pgm         *Char     (   20    )
+             Dcl        &SrcFile     *Char     (   20    )
+             Dcl        &SrcMbr      *Char     (   10    )
+             Dcl        &Text        *Char     (   50    )
+             Dcl        &UsrPrf      *Char     (   10    )
+             Dcl        &Replace     *Char     (   10    )
+             Dcl        &Aut         *Char     (   10    )
+             Dcl        &GenOpt      *Char     (  156    )
+             Dcl        &PgmNm       *Char     (   10    )
+             Dcl        &PgmLib      *Char     (   10    )
+             Dcl        &SrcFileNm   *Char     (   10    )
+             Dcl        &SrcFileLib  *Char     (   10    )
+             Dcl        &SrcChgDate  *Char     (   13    )
+             Dcl        &CurText     *Char     (   50    )
+             Dcl        &NbrCurRcd   *Dec      (   10  0 )
+             Dcl        &ErrorFlag   *Lgl
+             Dcl        &MsgID       *Char     (    7    )
+             Dcl        &MsgDta      *Char     (  256    )
+             Dcl        &MsgF        *Char     (   10    )
+             Dcl        &MsgFLib     *Char     (   10    )
+
+  /*  ===============================================================  */
+  /*  = Global error monitor                                        =  */
+  /*  ===============================================================  */
+
+
+             MonMsg     ( CPF0000 MCH0000 ) Exec( GoTo     Error                   )
+
+  /*  ===============================================================  */
+  /*  = Initialization                                              =  */
+  /*  ===============================================================  */
+
+             ChgVar     ( &PgmNm )   ( %Sst( &Pgm  1 10 ) )
+             ChgVar     ( &PgmLib )  ( %Sst( &Pgm 11 10 ) )
+             ChgVar     ( &SrcFileNm )   ( %Sst( &SrcFile  1 10 ) )
+             ChgVar     ( &SrcFileLib )  ( %Sst( &SrcFile 11 10 ) )
+
+             If         ( &SrcMbr *Eq '*PGM' ) ChgVar     ( &SrcMbr )  ( &PgmNm )
+
+             RtvMbrD    File( &SrcFileLib/&SrcFileNm ) Mbr( &SrcMbr ) SrcChgDate( &SrcChgDate +
+                          ) Text( &CurText ) NbrCurRcd( &NbrCurRcd )
+
+             If         ( &Text *Eq '*SRCMBRTXT' ) ChgVar     ( &Text )  ( &CurText )
+
+             If         ( &Aut *Eq '*LIBCRTAUT' ) Do
+                RtvLibD    Lib( &PgmLib ) CrtAut( &Aut )
+
+                If         ( &Aut *Eq '*SYSVAL' ) RtvSysVal  SysVal( QCrtAut ) RtnVar( &Aut )
+             EndDo
+
+  /*  ===============================================================  */
+  /*  = Call program to create MI program                           =  */
+  /*  ===============================================================  */
+
+             OvrPrtF    File( QSysPrt ) SplFName( &PgmNm ) OvrScope( *Job )
+
+             Call       CrtMIPgmR ( &Pgm &SrcFile &SrcMbr &Text &UsrPrf &Replace &Aut &GenOpt +
+                          &SrcChgDate &NbrCurRcd &MsgID &MsgDta )
+
+             If         ( &MsgID *NE ' ' ) SndPgmMsg  MsgID( &MsgID ) MsgF( QCPFMsg ) MsgDta( +
+                          &MsgDta ) ToPgmQ( *Same ) MsgType( *Escape )
+
+  /*  ===============================================================  */
+  /*  = Exit program                                                =  */
+  /*  ===============================================================  */
+
+             DltOvr     File( QSysPrt ) Lvl( *Job )
+
+             Return
+
+  /*  ===============================================================  */
+  /*  = Error routine                                               =  */
+  /*  ===============================================================  */
+
+ Error:
+
+             If         ( &ErrorFlag ) Return
+
+             ChgVar     ( &ErrorFlag )  ( '1' )
+
+             DltOvr     File( QSysPrt ) Lvl( *Job )
+
+             RcvMsg     MsgType( *Excp ) MsgDta( &MsgDta ) MsgID( &MsgID ) MsgF( &MsgF ) +
+                          MsgFLib( &MsgFLib )
+
+             MonMsg     ( CPF0000 MCH0000 )
+
+ SndMsg:
+
+             SndPgmMsg  MsgID( &MsgID ) MsgF( &MsgFLib/&MsgF ) MsgDta( &MsgDta ) MsgType( +
+                          *Escape )
+             MonMsg     ( CPF0000 MCH0000 )
+
+             EndPgm
